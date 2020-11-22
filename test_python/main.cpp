@@ -15,6 +15,8 @@
 #include "xtensor-python/pyarray.hpp"
 #include "xtensor-python/pytensor.hpp"
 #include "xtensor-python/pyvectorize.hpp"
+#include "xtensor/xadapt.hpp"
+#include "xtensor/xstrided_view.hpp"
 
 namespace py = pybind11;
 using complex_t = std::complex<double>;
@@ -131,6 +133,34 @@ public:
     array_type & array() { return m_array; }
 private:
     array_type m_array;
+};
+
+struct test_native_casters
+{
+    using array_type = xt::xarray<double>;
+    array_type a{{0, 1, 2},{3, 4, 5}};
+
+    const auto & get_array(){
+        return a;
+    }
+
+    auto get_strided_view(){
+        return xt::strided_view(a, {xt::range(0, 1), xt::range(0, 3, 2)});
+    }
+
+    auto get_array_adapter(){
+        using shape_type = std::vector<size_t>;
+        shape_type shape = {2, 2};
+        shape_type stride = {3, 2};
+        return xt::adapt(a.data(), 4, xt::no_ownership(), shape, stride);
+    }
+
+    auto get_tensor_adapter(){
+        using shape_type = std::array<size_t, 2>;
+        shape_type shape = {2, 2};
+        shape_type stride = {3, 2};
+        return xt::adapt(a.data(), 4, xt::no_ownership(), shape, stride);
+    }
 };
 
 xt::pyarray<A> dtype_to_python()
@@ -257,4 +287,12 @@ PYBIND11_MODULE(xtensor_python_test, m)
 
     m.def("diff_shape_overload", [](xt::pytensor<int, 1> a) { return 1; });
     m.def("diff_shape_overload", [](xt::pytensor<int, 2> a) { return 2; });
+
+    py::class_<test_native_casters>(m, "test_native_casters")
+            .def(py::init<>())
+            .def("get_array", &test_native_casters::get_array, py::return_value_policy::reference_internal)
+            .def("get_strided_view", &test_native_casters::get_strided_view)
+            .def("get_array_adapter", &test_native_casters::get_array_adapter)
+            .def("get_tensor_adapter", &test_native_casters::get_tensor_adapter);
+
 }

@@ -166,6 +166,25 @@ class XtensorTest(TestCase):
             # FIXME: the TypeError information is not informative
             xt.diff_shape_overload(np.ones((2, 2, 2)))
 
+    def test_native_casters(self):
+        obj = xt.test_native_casters()
+        arr = obj.get_array()
+
+        strided_view = obj.get_strided_view()
+        strided_view[0, 1] = -1
+        self.assertEqual(strided_view.shape, (1, 2))
+        self.assertEqual(arr[0, 2], -1)
+
+        adapter = obj.get_array_adapter()
+        self.assertEqual(adapter.shape, (2, 2))
+        adapter[1, 1] = -2
+        self.assertEqual(arr[1, 2], -2)
+
+        adapter = obj.get_tensor_adapter()
+        self.assertEqual(adapter.shape, (2, 2))
+        adapter[1, 1] = -3
+        self.assertEqual(arr[1, 2], -3)
+
 
 class AttributeTest(TestCase):
 
